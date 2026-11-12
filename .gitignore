@@ -173,3 +173,6 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 /.claude
+
+# Local exploration notebooks, not shared yet
+notebooks/
