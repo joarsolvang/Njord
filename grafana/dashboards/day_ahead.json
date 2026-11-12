@@ -1,0 +1,307 @@
+{
+  "uid": "njord-day-ahead",
+  "title": "Day-ahead prices",
+  "tags": [
+    "njord"
+  ],
+  "timezone": "Europe/London",
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": true,
+  "refresh": "",
+  "time": {
+    "from": "now/d+23h",
+    "to": "now/d+23h"
+  },
+  "timepicker": {
+    "refresh_intervals": []
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "model",
+        "label": "Bands for",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "njord-timescaledb"
+        },
+        "query": "SELECT DISTINCT model FROM price_forecast ORDER BY 1",
+        "definition": "SELECT DISTINCT model FROM price_forecast ORDER BY 1",
+        "refresh": 1,
+        "current": {
+          "text": "chronos2",
+          "value": "chronos2"
+        },
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Day-ahead timeline.** Forecasts are issued at **09:00 UK time the day before**, ahead of the 09:20 EPEX gate closure. They cover the **power day, 23:00 to 23:00 UK time**. Use the time picker arrows to step a day at a time. Actual = Elexon market index price (APX), a proxy for the auction price."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Day-ahead price: $model forecast vs actual",
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 13
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "njord-timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyGBP",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P90"
+            },
+            "properties": [
+              {
+                "id": "custom.fillBelowTo",
+                "value": "P10"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 25
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "displayName",
+                "value": "P10–P90"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P10"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": false,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P50"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "displayName",
+                "value": "$model P50"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Actual MID"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    6
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "njord-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT DISTINCT ON (model, valid_for) model, delivery_day, valid_for, p10, p50, p90\n  FROM price_forecast\n  WHERE valid_for >= $__timeFrom() AND valid_for < $__timeTo()\n  ORDER BY model, valid_for, issued_at DESC\n)\nSELECT valid_for AS \"time\", p10 AS \"P10\", p50 AS \"P50\", p90 AS \"P90\"\nFROM latest WHERE model = '$model' ORDER BY 1"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "njord-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT valid_for AS \"time\", price AS \"Actual MID\"\nFROM market_index_price\nWHERE provider = 'APXMIDP' AND valid_for >= $__timeFrom() AND valid_for < $__timeTo() ORDER BY 1"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "njord-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT DISTINCT ON (model, valid_for) model, delivery_day, valid_for, p10, p50, p90\n  FROM price_forecast\n  WHERE valid_for >= $__timeFrom() AND valid_for < $__timeTo()\n  ORDER BY model, valid_for, issued_at DESC\n)\nSELECT valid_for AS \"time\", model || ' P50' AS metric, p50 AS value\nFROM latest WHERE model <> '$model' ORDER BY 1"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Power day summary",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 5
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "njord-timescaledb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyGBP",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P10–P90 coverage"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "njord-timescaledb"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "WITH latest AS (\n  SELECT DISTINCT ON (model, valid_for) model, delivery_day, valid_for, p10, p50, p90\n  FROM price_forecast\n  WHERE valid_for >= $__timeFrom() AND valid_for < $__timeTo()\n  ORDER BY model, valid_for, issued_at DESC\n)\nSELECT f.model AS \"Model\",\n       avg(abs(f.p50 - p.price)) AS \"MAE\",\n       avg((p.price BETWEEN f.p10 AND f.p90)::int) AS \"P10–P90 coverage\",\n       max(f.p50) - min(f.p50) AS \"Forecast spread (max - min)\",\n       max(p.price) - min(p.price) AS \"Actual spread (max - min)\"\nFROM latest f\nLEFT JOIN market_index_price p ON p.provider = 'APXMIDP' AND p.valid_for = f.valid_for\nGROUP BY 1 ORDER BY 1"
+        }
+      ]
+    }
+  ]
+}
