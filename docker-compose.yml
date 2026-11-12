@@ -14,5 +14,24 @@ services:
       interval: 5s
       retries: 10
 
+  grafana:
+    image: grafana/grafana-oss:12.1.1
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      NJORD_DB_PASSWORD: ${NJORD_DB_PASSWORD:-njord}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}  # local-only dev default
+      GF_AUTH_ANONYMOUS_ENABLED: "true"  # local viewing without login; turn off before publishing
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/day_ahead.json
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - njord-grafana:/var/lib/grafana
+
 volumes:
   njord-db:
+  njord-grafana:
