@@ -26,7 +26,9 @@ path = "src/njord/__init__.py"
 dev = [
     "coverage>=7.7.0",
     "deptry>=0.23.0",
+    "marimo>=0.25.2",
     "mypy>=1.15.0",
+    "plotly>=7.1.0",
     "poethepoet>=0.33.1",
     "pytest>=8.3.5",
     "ruff>=0.11.0",
@@ -68,6 +70,7 @@ lint.select = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101"]
+"notebooks/**/*.py" = ["INP001", "T201", "ANN", "N806", "N803", "S101", "B018"]  # marimo: untyped cells, display exprs
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
@@ -76,7 +79,7 @@ max-complexity = 10
 python_version = "3.12"
 ignore_missing_imports = true
 disallow_untyped_defs = true
-exclude = ".venv|__ignore__"
+exclude = ".venv|__ignore__|notebooks"
 
 [tool.coverage.run]
 branch = true
