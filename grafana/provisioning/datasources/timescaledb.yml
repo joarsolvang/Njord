@@ -1,0 +1,15 @@
+apiVersion: 1
+datasources:
+  - name: TimescaleDB
+    uid: njord-timescaledb
+    type: grafana-postgresql-datasource
+    url: timescaledb:5432
+    user: njord
+    secureJsonData:
+      password: ${NJORD_DB_PASSWORD}
+    jsonData:
+      database: njord
+      sslmode: disable
+      timescaledb: true
+      postgresVersion: 1600
+    isDefault: true
