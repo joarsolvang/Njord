@@ -151,6 +151,9 @@ cmd = "coverage html"
 [tool.poe.tasks.cov-view]
 cmd = "python -m webbrowser -t $POE_ROOT/htmlcov/index.html"
 
+[tool.deptry]
+known_first_party = ["njord"]
+
 [tool.deptry.per_rule_ignores]
 DEP002 = [
     "tzdata",  # loaded implicitly by zoneinfo on Windows
