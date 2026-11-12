@@ -8,10 +8,12 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "chronos-forecasting>=2.3.2",
     "numpy>=2.5.4",
     "pandas>=3.1.1",
     "scikit-learn>=1.9.1",
     "tenacity>=9.2.1",
+    "torch>=2.14,<2.15",
     "tzdata>=2026.6",
     "xgboost>=3.4.1",
 ]
@@ -78,6 +80,10 @@ lint.select = [
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
+
+[tool.pytest.ini_options]
+markers = ["slow: downloads and runs Chronos-2; run with `pytest -m slow`"]
+addopts = "-m 'not slow'"
 
 [tool.mypy]
 python_version = "3.12"
@@ -150,3 +156,13 @@ DEP002 = [
     "tzdata",  # loaded implicitly by zoneinfo on Windows
     "scikit-learn",  # needed by xgboost's sklearn API
 ]
+
+# CUDA build of torch on Windows/Linux (PyPI only ships CPU wheels for Windows).
+# shortcut: cu130 caps torch at 2.14 for the current driver (CUDA 13.0); update the driver to move to cu132+.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true

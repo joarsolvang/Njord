@@ -2,12 +2,12 @@
 
 from collections.abc import Sequence
 from datetime import date
-from typing import Protocol
+from typing import Any, Protocol
 
 import pandas as pd
 import xgboost as xgb
 
-from njord.forecasting.data import MarketData
+from njord.forecasting.data import COVARIATES, MarketData
 from njord.forecasting.day_ahead import delivery_periods, issue_time
 
 QUANTILES = (0.1, 0.5, 0.9)
@@ -75,3 +75,54 @@ class XGBoostForecaster:
         periods = delivery_periods(delivery_day)
         x, level = self._features(data, periods)
         return pd.DataFrame(self._model.predict(x) + level, index=periods, columns=COLUMNS)
+
+
+class Chronos2Forecaster:
+    """Amazon Chronos-2, zero-shot: reads recent prices and NESO forecasts as covariates, no training on GB data."""
+
+    name = "chronos2"
+
+    def __init__(
+        self, covariates: Sequence[str] = COVARIATES, context: int = 2048, model_id: str = "amazon/chronos-2"
+    ) -> None:
+        self.covariates = list(covariates)
+        self.context = context  # half-hours of history, ~6 weeks
+        self.model_id = model_id
+        self._pipeline: Any = None
+
+    def fit(self, data: MarketData, delivery_days: Sequence[date]) -> None:
+        """Nothing to train."""
+
+    def predict(self, data: MarketData, delivery_day: date) -> pd.DataFrame:
+        periods = delivery_periods(delivery_day)
+        hist = data.prices().iloc[-self.context :].asfreq("30min").interpolate(limit_direction="both")
+        # Forecast from the last known price through to the end of the power day, then keep the power day.
+        future = pd.date_range(hist.index[-1] + pd.Timedelta("30min"), periods[-1], freq="30min")
+        past = pd.DataFrame({"item_id": "mid", "timestamp": hist.index.tz_localize(None), "target": hist.to_numpy()})
+        fut = pd.DataFrame({"item_id": "mid", "timestamp": future.tz_localize(None)})
+        if self.covariates:
+            cov_past = data.covariate_history(hist.index)[self.covariates].ffill().bfill()
+            cov_future = data.covariates(future)[self.covariates].ffill().bfill()
+            past = past.join(cov_past.reset_index(drop=True))
+            fut = fut.join(cov_future.reset_index(drop=True))
+        out = self._load().predict_df(
+            past,
+            future_df=fut if self.covariates else None,
+            prediction_length=len(future),
+            quantile_levels=list(QUANTILES),
+            freq="30min",
+        )
+        out.index = pd.DatetimeIndex(out.timestamp).tz_localize("UTC")
+        return pd.DataFrame(out[[str(q) for q in QUANTILES]].to_numpy(), index=out.index, columns=COLUMNS).reindex(
+            periods
+        )
+
+    def _load(self) -> Any:  # noqa: ANN401 (chronos has no type stubs)
+        if self._pipeline is None:
+            # Imported here: torch and chronos take several seconds to import.
+            import torch
+            from chronos import Chronos2Pipeline
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            self._pipeline = Chronos2Pipeline.from_pretrained(self.model_id, device_map=device)
+        return self._pipeline
