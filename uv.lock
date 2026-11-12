@@ -451,6 +451,7 @@ wheels = [
 name = "njord"
 source = { editable = "." }
 dependencies = [
+    { name = "numpy" },
     { name = "pandas" },
     { name = "tenacity" },
     { name = "tzdata" },
@@ -470,6 +471,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "numpy", specifier = ">=2.5.4" },
     { name = "pandas", specifier = ">=3.1.1" },
     { name = "tenacity", specifier = ">=9.2.1" },
     { name = "tzdata", specifier = ">=2026.6" },
