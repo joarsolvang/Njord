@@ -25,6 +25,7 @@ path = "src/njord/__init__.py"
 
 [dependency-groups]
 dev = [
+    "chronos-forecasting>=2.0",
     "coverage>=7.7.0",
     "deptry>=0.23.0",
     "marimo>=0.25.2",
@@ -33,6 +34,9 @@ dev = [
     "poethepoet>=0.33.1",
     "pytest>=8.3.5",
     "ruff>=0.11.0",
+    "scikit-learn>=1.9.1",
+    "torch>=2.14,<2.15",
+    "xgboost>=3.4.1",
 ]
 
 [tool.ruff]
@@ -147,3 +151,13 @@ extend_exclude = ["notebooks"]
 
 [tool.deptry.per_rule_ignores]
 DEP002 = ["tzdata"]  # loaded implicitly by zoneinfo on Windows
+
+# CUDA build of torch on Windows/Linux (PyPI only ships CPU wheels for Windows).
+# shortcut: cu130 caps torch at 2.14 for the current driver (CUDA 13.0); update the driver to move to cu132+.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu130", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
